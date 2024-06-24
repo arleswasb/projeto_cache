@@ -1,29 +1,27 @@
 
-import numpy as np; # type: ignore
-import matplotlib.pyplot as plt; # type: ignore
+import numpy as np; 
+import matplotlib.pyplot as plt; 
 
 
 with open("referencia1.dat", 'r') as arquivo1:
     referencia1 = [int(linha.strip()) for linha in arquivo1]
 with open("referencia2.dat", 'r') as arquivo2:
     referencia2 = [int(linha.strip()) for linha in arquivo2]
-## definindo classe de variaveis cache
+
+## definindo classe de variaveis cache##############################
 class Cache:
     def __init__(self, tam_cache_kb, tam_bloco_byte):
-        self.tam_cache_kb = tam_cache_kb                        #tamanho da memori cache
-        self.tam_bloco_byte = tam_bloco_byte                      #tamanho dos blocos de memoria
-        self.blocos = tam_cache_kb * 1024 // tam_bloco_byte      #numero de blocos
-        self.bitvalid = 0
+        self.tam_cache_kb = tam_cache_kb                        #tamanho da memoria cache
+        self.tam_bloco_byte = tam_bloco_byte                    #tamanho dos blocos de memoria
+        self.blocos = tam_cache_kb * 1024 // tam_bloco_byte     #numero de blocos
+        self.bitvalid = 0                                       #bit de validade   
         self.cache = {}
 
-    def leitura(self, endereco):
+    def leitura_direta(self, endereco):                         #função de verificação de cache diretamente mapeada (ok)
         end_bloco = endereco // self.tam_bloco_byte              #endereço da memoria principal
         index_bloco = end_bloco % self.blocos                   #indice dos blocos(tag)
         if self.bitvalid == 1:
             if index_bloco in self.cache and self.cache[index_bloco] == end_bloco:
-                print(index_bloco)
-                print(self.cache[index_bloco])
-                print(end_bloco)
                 return True
             else:
                 self.cache[index_bloco] = end_bloco
@@ -32,10 +30,31 @@ class Cache:
             self.cache[index_bloco] = end_bloco
             self.bitvalid = 1
             return False
+        
+    def leitura(self, endereco):                                 #função de verificação de cache associativamente mapeada (atenção: FALTA CORRIGIR O ALGORITIMO)  
+        end_bloco = endereco // self.tam_bloco_byte              #endereço da memoria principal
+        index_bloco = end_bloco % self.blocos                    #indice dos blocos(tag)
+        if self.bitvalid == 1:
+            if index_bloco in self.cache and self.cache[index_bloco] == end_bloco:
+                return True
+            else:
+                self.cache[index_bloco] = end_bloco
+                return False
+        else:  
+            self.cache[index_bloco] = end_bloco
+            self.bitvalid = 1
+            return False    
 
 # tipos da cache
 
-def verifica_cache(cache, referencias):
+def verifica_cache_direto(cache, referencias):                  #UTILIZA INSTTRUÇÃO CACHE PARA VERIFICAÇÃO DO MAPEMENTO DIRETO (OK)
+    acertos = 0
+    for endereco in referencias:
+        if cache.leitura_direta(endereco):
+            acertos += 1
+    return acertos / len(referencias) * 100
+
+def verifica_cache(cache, referencias):                         #UTILIZA INSTTRUÇÃO CACHE PARA VERIFICAÇÃO DO MAPEMENTO ASOOCIATIVO DE DUAS VIAS(ATENÇÃO FALTA CORRIGIR O ALGORITIMO))
     acertos = 0
     for endereco in referencias:
         if cache.leitura(endereco):
@@ -48,7 +67,7 @@ def cache_diretamente_mapeada(tam_blocos, tam_cache_kb, referencia):
     for tam_bloco in tam_blocos:
         cache_direto = Cache(tam_cache_kb, tam_bloco)
         print(type(cache_direto))
-        acertos = verifica_cache(cache_direto, referencia)
+        acertos = verifica_cache_direto(cache_direto, referencia)
         acertos_direto.append(acertos)
         print(f"Taxa de acertos para bloco de {tam_bloco} palavras: {acertos:.2f}%")
         
@@ -59,7 +78,7 @@ def cache_conjunto_2_vias(tam_blocos, tam_cache_kb, referencia):
     print("\nCache associativa em conjunto de 2 vias:")
     for tam_bloco in tam_blocos:
         cache_assoc = Cache(tam_cache_kb, tam_bloco * 2)
-        acertos = verifica_cache(cache_assoc, referencia)
+        acertos = verifica_cache(cache_assoc, referencia)       #atenção: FALTA CORRIGIR OS ALGORITIMOS DE BUSCA E SUBSTITUIÇÃO
         acertos_assoc.append(acertos)
         print(f"Taxa de acertos para bloco de {tam_bloco} words: {acertos:.2f}%")
     return acertos_assoc 
